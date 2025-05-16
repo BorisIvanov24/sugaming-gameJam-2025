@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8" />
+  <title>raylib Web Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #canvas {
+      border: 2px solid white;
+      outline: none;
+      /* Optional: set default canvas size here or leave sizing to raylib */
+      /* width: 800px; */
+      /* height: 450px; */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+
+    var Module = {
+      print: (function() {
+        // No output textarea, just clear console
+        return function(...args) {
+          console.log(args.join(' '));
+        };
+      })(),
+
+      canvas: (function() {
+        canvas.addEventListener('webglcontextlost', (e) => {
+          alert('WebGL context lost. Please reload the page.');
+          e.preventDefault();
+        }, false);
+        return canvas;
+      })(),
+
+      setStatus: function(text) {
+        // no UI status to update, so no-op
+      },
+
+      totalDependencies: 0,
+      monitorRunDependencies: function(left) {
+        // no UI progress, so no-op
+      }
+    };
+
+    window.onerror = function(event) {
+      // Just log errors to console, no UI updates
+      console.error('Exception thrown, see JavaScript console');
+    };
+  </script>
+
+  {{{ SCRIPT }}}
+</body>
+</html>
