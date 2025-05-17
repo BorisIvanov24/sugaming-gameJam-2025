@@ -3,7 +3,7 @@
 
 float Game::scale = 0.0f;
 
-Game::Game() : anim(8, 32, 0.09f, AnimationType::REPEATING)
+Game::Game() : player({200, 200}, 32, 100.f)
 {
     renderTexture = LoadRenderTexture(Constants::VIRTUAL_WIDTH, Constants::VIRTUAL_HEIGHT);
     SetTextureFilter(renderTexture.texture, TEXTURE_FILTER_BILINEAR);
@@ -14,10 +14,26 @@ Game::Game() : anim(8, 32, 0.09f, AnimationType::REPEATING)
     camera.zoom = 3.0f;
 
     resourceManager.loadTexture("map", "Assets/map.png");
-    resourceManager.loadTexture("walk", "Assets/WalkRight.png");
+    resourceManager.loadTexture("walkRight", "Assets/WalkRight.png");
+    resourceManager.loadTexture("walkLeft", "Assets/WalkLeft.png");
 
-    anim.setTexture(resourceManager.getTexture("walk"));
+    Animation animationLeft(8, 32, 0.09f, REPEATING);
+    animationLeft.setTexture(resourceManager.getTexture("walkLeft"));
+    Animation animationRight(8, 32, 0.09f, REPEATING);
+    animationRight.setTexture(resourceManager.getTexture("walkRight"));
+    Animation animationUp(8, 32, 0.09f, REPEATING);
+    animationUp.setTexture(resourceManager.getTexture("walkLeft"));
+    Animation animationDown(8, 32, 0.09f, REPEATING);
+    animationDown.setTexture(resourceManager.getTexture("walkLeft"));
 
+    Animation animationIdle(8, 32, 0.09f, REPEATING);
+    animationIdle.setTexture(resourceManager.getTexture("walkRight"));
+
+    player.addAnimation(animationLeft, PlayerState::LEFT);
+    player.addAnimation(animationRight, PlayerState::RIGHT);
+    player.addAnimation(animationUp, PlayerState::UP);
+    player.addAnimation(animationDown, PlayerState::DOWN);
+    player.addAnimation(animationIdle, PlayerState::IDLE);
 }
 
 void Game::input()
@@ -33,24 +49,8 @@ void Game::update()
         (float)GetScreenHeight() / Constants::VIRTUAL_HEIGHT
     );
 
-    if (IsKeyDown(KEY_D))
-    {
-        camera.target.x += Constants::KEY_BUTTON_MOVEMENT;
-    }
-    else if (IsKeyDown(KEY_A))
-    {
-        camera.target.x -= Constants::KEY_BUTTON_MOVEMENT;
-    }
-    else if (IsKeyDown(KEY_W))
-    {
-        camera.target.y -= Constants::KEY_BUTTON_MOVEMENT;
-    }
-    else if (IsKeyDown(KEY_S))
-    {
-        camera.target.y += Constants::KEY_BUTTON_MOVEMENT;
-    }
-
-    anim.animationUpdate();
+    player.update();
+    camera.target = { player.getPosition().x, player.getPosition().y };
 }
 
 void Game::draw()
@@ -67,8 +67,7 @@ void Game::draw()
     BeginMode2D(camera);
 
     DrawTexture(resourceManager.getTexture("map"), 0, 0, RAYWHITE);
-    
-    DrawTextureRec(anim.getTexture(), anim.animationFrame(), camera.target, RAYWHITE);
+    player.draw();
 
     EndTextureMode();
 

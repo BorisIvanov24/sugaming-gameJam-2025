@@ -27,6 +27,7 @@ class Animation {
 
 public:
 
+	Animation() = default;
 	Animation(int numFramesPerRow, int tilePixelSize, float speed, AnimationType type);
 
 	Rectangle animationFrame() const;

@@ -1,5 +1,6 @@
 #include "Animation.h"
 
+
 Animation::Animation(int numFramesPerRow, int tilePixelSize,
                      float speed, AnimationType type)
 {

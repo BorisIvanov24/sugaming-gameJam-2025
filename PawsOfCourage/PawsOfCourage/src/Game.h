@@ -2,14 +2,14 @@
 #include "raylib.h"
 #include <iostream>
 #include "ResourceManager.h"
-#include "Animation.h"
+#include "Player.h"
 
 class Game
 {
 	RenderTexture2D renderTexture;
 	ResourceManager resourceManager;
 	Camera2D camera;
-	Animation anim;
+	Player player;
 
 	void input();
 	void update();
