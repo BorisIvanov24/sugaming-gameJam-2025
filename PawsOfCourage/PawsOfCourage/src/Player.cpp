@@ -2,9 +2,6 @@
 #include <iostream>
 #include "Constants.h"
 
-int offsetX = 7;
-int offsetY = 7;
-
 std::string Player::enumToString(PlayerState playerState) const
 {
 	switch (playerState)
@@ -48,6 +45,16 @@ void Player::setPosition(Position newPos)
 int Player::getHitBoxSize() const
 {
 	return hitBoxSize;
+}
+
+Position Player::getHighlightPos() const
+{
+	Position pawsPosition = getPawsPosition();
+
+	pawsPosition.x = (pawsPosition.x / 32) * 32;
+	pawsPosition.y = (pawsPosition.y / 32) * 32;
+
+	return { pawsPosition.x, pawsPosition.y };
 }
 
 const std::vector<Position>& Player::getDigPositions() const
@@ -118,8 +125,8 @@ void Player::update()
 	}
 	else if (IsKeyPressed(KEY_SPACE))
 	{
-		digPositions.push_back(position);
-
+		digPositions.push_back(getHighlightPos());
+		
 		if(currentState == PlayerState::IDLE_LEFT)
 		currentState = PlayerState::DIG_LEFT;
 		else
@@ -146,8 +153,8 @@ void Player::addAnimation(const Animation& animation, PlayerState playerState)
 
 Rectangle Player::getHitBox() const
 {
-	offsetX = 7;
-	offsetY = 7;
+	int offsetX = 7;
+	int offsetY = 7;
 	return {(float)position.x + offsetX, (float)position.y + offsetY, (float)hitBoxSize, (float)hitBoxSize};
 }
 

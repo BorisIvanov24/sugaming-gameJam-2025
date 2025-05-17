@@ -4,8 +4,9 @@
 #include "ResourceManager.h"
 #include "Player.h"
 #include <string>
+#include <queue>
 
-enum class BlockType
+enum class SolidBlockType
 {
 	BIG_ROCK,
 	WOOD
@@ -14,7 +15,7 @@ enum class BlockType
 struct SolidBLock
 {
 	Position pos;
-	BlockType type;
+	SolidBlockType type;
 };
 
 class Game
@@ -25,19 +26,20 @@ class Game
 	Player player;
 	Position targetPosition;
 	std::vector<SolidBLock> solidBlocks;
+	std::queue<Position> circles;
 
 	void input();
 	void update();
 	void draw();
 
 	void drawDebugGrid() const;
-
+	void drawHoles() const;
 	void drawHighlight() const;
 	Rectangle getHighlightRec() const;
 	bool isHighlighSolid() const;
 
 	void generateSolidBlocks();
-	std::string getStringFromEnum(BlockType type) const;
+	std::string stringFromEnum(SolidBlockType type) const;
 	void drawSolidBlocks() const;
 
 	void drawCircles() const;

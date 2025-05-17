@@ -12,4 +12,7 @@ namespace Constants
 
 	const int MAP_WIDTH_TILES = 80;
 	const int MAP_HEIGHT_TILES = 45;
+
+	const int MINIMAP_WIDTH = 400;
+	const int MINIMAP_HEIGHT = 225;
 }

@@ -30,8 +30,8 @@ class Player
 	float movementSpeed;
 	PlayerState currentState;
 	std::unordered_map<std::string, Animation> anims;
-
 	std::vector<Position> digPositions;
+
 
 	std::string enumToString(PlayerState playerState) const;
 
@@ -46,6 +46,7 @@ public:
 	Position getPawsPosition() const;
 	void setPosition(Position newPos);
 	int getHitBoxSize() const;
+	Position getHighlightPos() const;
 
 	const std::vector<Position>& getDigPositions() const;
 };
