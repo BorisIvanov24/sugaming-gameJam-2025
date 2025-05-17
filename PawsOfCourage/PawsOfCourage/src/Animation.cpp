@@ -1,10 +1,9 @@
 #include "Animation.h"
 
 
-Animation::Animation(int numFramesPerRow, int tilePixelSize,
-                     float speed, AnimationType type)
+Animation::Animation(const Texture2D& texture, int numFramesPerRow, int tilePixelSize,
+                     float speed, AnimationType type) : texture(&texture)
 {
-    texture = nullptr;
     step = 1;
     first = 0;
     cur = 0;
@@ -60,11 +59,6 @@ void Animation::animationUpdate()
             }
         }
     }
-}
-
-void Animation::setTexture(const Texture2D& texture)
-{
-    this->texture = &texture;
 }
 
 const Texture2D& Animation::getTexture() const

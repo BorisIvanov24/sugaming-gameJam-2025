@@ -6,16 +6,25 @@
 
 enum class PlayerState
 {
-	IDLE,
+	IDLE_LEFT,
+	IDLE_RIGHT,
 	LEFT,
 	RIGHT,
 	UP,
-	DOWN
+	DOWN,
+	DIG_LEFT,
+	DIG_RIGHT
+};
+
+struct Position
+{
+	int x;
+	int y;
 };
 
 class Player
 {
-	Vector2 position;
+	Position position;
 	int hitBoxSize;
 	float movementSpeed;
 	PlayerState currentState;
@@ -23,14 +32,14 @@ class Player
 
 	std::string enumToString(PlayerState playerState) const;
 
-
 public:
 
-	Player(const Vector2& position, int hitBoxSize, float movementSpeed);
+	Player(const Position& position, int hitBoxSize, float movementSpeed);
 	void update();
 	void addAnimation(const Animation& animation, PlayerState playerState);
 	Rectangle getHitBox() const;
 	void draw() const;
-	Vector2 getPosition() const;
+	Position getPosition() const;
+	Position getPawsPosition() const;
 };
 

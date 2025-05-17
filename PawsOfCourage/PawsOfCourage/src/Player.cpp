@@ -1,12 +1,15 @@
 #include "Player.h"
 #include <iostream>
+#include "Constants.h"
 
 std::string Player::enumToString(PlayerState playerState) const
 {
 	switch (playerState)
 	{
-	case PlayerState::IDLE:
-		return "idle";
+	case PlayerState::IDLE_LEFT:
+		return "idle_left";
+	case PlayerState::IDLE_RIGHT:
+		return "idle_right";
 	case PlayerState::LEFT:
 		return "left";
 	case PlayerState::RIGHT:
@@ -15,23 +18,37 @@ std::string Player::enumToString(PlayerState playerState) const
 		return "up";
 	case PlayerState::DOWN:
 		return "down";
+	case PlayerState::DIG_LEFT:
+		return "dig_left";
+	case PlayerState::DIG_RIGHT:
+		return "dig_right";
 	default:
 		break;
 	}
 }
 
-Player::Player(const Vector2& position, int hitBoxSize, float movementSpeed)
+Position Player::getPawsPosition() const
+{
+	Position pawsPosition;
+
+	pawsPosition.x = position.x + (hitBoxSize / 2);
+	pawsPosition.y = position.y + hitBoxSize;
+
+	return pawsPosition;
+}
+
+Player::Player(const Position& position, int hitBoxSize, float movementSpeed)
 {
 	this->position = position;
 	this->hitBoxSize = hitBoxSize;
 	this->movementSpeed = movementSpeed;
-	currentState = PlayerState::IDLE;
+	currentState = PlayerState::IDLE_LEFT;
 }
 
 void Player::update()
 {
 	float dt = GetFrameTime();
-	float toAdd = dt * movementSpeed;
+	int toAdd = dt * movementSpeed;
 	
 	std::string currentAnimStr = enumToString(currentState);
 	anims[currentAnimStr].animationUpdate();
@@ -57,27 +74,35 @@ void Player::update()
 		position.y += toAdd;
 		currentState = PlayerState::DOWN;
 	}
-	else
+	else if (IsKeyPressed(KEY_SPACE))
 	{
-		currentState = PlayerState::IDLE;
+		if(currentState == PlayerState::IDLE_LEFT)
+		currentState = PlayerState::DIG_LEFT;
+		else
+		currentState = PlayerState::DIG_RIGHT;
+
 	}
+	else if(currentState == PlayerState::LEFT || currentState == PlayerState::DOWN)
+	{
+		currentState = PlayerState::IDLE_LEFT;
+	}
+	else if (currentState == PlayerState::RIGHT || currentState == PlayerState::UP)
+	{
+		currentState = PlayerState::IDLE_RIGHT;
+	}
+
 }
 
 void Player::addAnimation(const Animation& animation, PlayerState playerState)
 {
 	std::string animString = enumToString(playerState);
-	
-	if (anims.count(animString))
-	{
-		std::cout<<"IMA GO"<<std::endl;
-	}
 
 	anims[animString] = animation;
 }
 
 Rectangle Player::getHitBox() const
 {
-	return {position.x, position.y, (float)hitBoxSize, (float)hitBoxSize};
+	return {(float)position.x, (float)position.y, (float)hitBoxSize, (float)hitBoxSize};
 }
 
 void Player::draw() const
@@ -85,10 +110,12 @@ void Player::draw() const
 	std::string currentAnimStr = enumToString(currentState);
 
 	DrawTextureRec(anims.at(currentAnimStr).getTexture(), anims.at(currentAnimStr).animationFrame(),
-		position, RAYWHITE);
+		{ (float)position.x, (float)position.y }, RAYWHITE);
+
+	//DrawRectangleLines(position.x, position.y, (float)hitBoxSize, (float)hitBoxSize, BLACK);
 }
 
-Vector2 Player::getPosition() const
+Position Player::getPosition() const
 {
 	return position;
 }

@@ -15,6 +15,8 @@ class Game
 	void update();
 	void draw();
 
+	void drawDebugGrid() const;
+	void drawHighlight() const;
 public:
 
 	static float scale;

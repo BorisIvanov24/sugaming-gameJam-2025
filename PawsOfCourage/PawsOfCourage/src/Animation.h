@@ -28,12 +28,12 @@ class Animation {
 public:
 
 	Animation() = default;
-	Animation(int numFramesPerRow, int tilePixelSize, float speed, AnimationType type);
+	Animation(const Texture2D& texture, int numFramesPerRow, 
+		      int tilePixelSize, float speed, AnimationType type);
 
 	Rectangle animationFrame() const;
 	void animationUpdate();
 
-	void setTexture(const Texture2D& texture);
 	const Texture2D& getTexture() const;
 };
 
