@@ -2,6 +2,7 @@
 #include "Constants.h"
 #include <fstream>
 #include <random>
+#include <vector>
 
 float Game::scale = 0.0f;  
 
@@ -25,11 +26,23 @@ Game::Game() : player({200, 200}, 20, 170.f)
     resourceManager.loadTexture("idleRight", "Assets/IdleRight.png");
     resourceManager.loadTexture("walkDown", "Assets/WalkDown.png");
     resourceManager.loadTexture("walkUp", "Assets/WalkUp.png");
+    resourceManager.loadTexture("sniffLeft", "Assets/SniffLeft.png");
+    resourceManager.loadTexture("sniffRight", "Assets/SniffRight.png");
 
     resourceManager.loadTexture("bigRock", "Assets/BigRock.png");
     resourceManager.loadTexture("wood", "Assets/Wood.png");
     resourceManager.loadTexture("hole", "Assets/Hole.png");
+    resourceManager.loadTexture("rockGreen1", "Assets/rockGreen1.png");
+    resourceManager.loadTexture("rockGreen2", "Assets/rockGreen2.png");
+    resourceManager.loadTexture("miniMapCursor", "Assets/RockyHead.png");
 
+    //Fonts
+    resourceManager.setFont(LoadFont("Assets/Font.ttf"));
+
+    Animation animationSniffLeft(resourceManager.getTexture("sniffLeft"),
+        6, 32, 0.09f, REPEATING);
+    Animation animationSniffRight(resourceManager.getTexture("sniffRight"),
+        6, 32, 0.09f, REPEATING);
     Animation animationLeft(resourceManager.getTexture("walkLeft"), 
                             8, 32, 0.09f, REPEATING);
     Animation animationRight(resourceManager.getTexture("walkRight"),
@@ -55,6 +68,8 @@ Game::Game() : player({200, 200}, 20, 170.f)
     player.addAnimation(animationIdleRight, PlayerState::IDLE_RIGHT);
     player.addAnimation(animationDigLeft, PlayerState::DIG_LEFT);
     player.addAnimation(animationDigRight, PlayerState::DIG_RIGHT);
+    player.addAnimation(animationSniffLeft, PlayerState::SNIFF_LEFT);
+    player.addAnimation(animationSniffRight, PlayerState::SNIFF_RIGHT);
 
     generateSolidBlocks();
     player.setPosition(genPlayerStartPosition());
@@ -68,11 +83,19 @@ void Game::input()
 
 void Game::update()
 {
+    checkWin();
+
     //update scale
     scale = std::min(
         (float)GetScreenWidth() / Constants::VIRTUAL_WIDTH,
         (float)GetScreenHeight() / Constants::VIRTUAL_HEIGHT
     );
+
+    if (countdown > 0.0f)
+    {
+        countdown -= GetFrameTime();  // Decrease based on frame time
+        if (countdown < 0.0f) countdown = 0.0f;  // Clamp to 0
+    }
 
     Position oldPos = player.getPosition();
     player.update();
@@ -122,24 +145,49 @@ void Game::drawMinimap()
     float targetMinimapX = minimapPositionVirtual.x + targetPosition.x * scaleX;
     float targetMinimapY = minimapPositionVirtual.y + targetPosition.y * scaleY;
 
-    for (const auto& pos : circles)
-    {
-        float circleMinimapX = minimapPositionVirtual.x + pos.x * scaleX;
-        float circleMinimapY = minimapPositionVirtual.y + pos.y * scaleY;
+   // if (player.circleDelay < 0.01)
+    //{
+        for (const auto& pos : circles)
+        {
+            float circleMinimapX = minimapPositionVirtual.x + pos.x * scaleX;
+            float circleMinimapY = minimapPositionVirtual.y + pos.y * scaleY;
 
-        int radius = sqrtf((circleMinimapX - targetMinimapX) * (circleMinimapX - targetMinimapX) +
-            (circleMinimapY - targetMinimapY) * (circleMinimapY - targetMinimapY));
+            int radius = sqrtf((circleMinimapX - targetMinimapX) * (circleMinimapX - targetMinimapX) +
+                (circleMinimapY - targetMinimapY) * (circleMinimapY - targetMinimapY));
 
-        DrawCircle(circleMinimapX, circleMinimapY, radius, { 255, 0, 0, 70 });
-    }
+            DrawCircle(circleMinimapX, circleMinimapY, radius, { 255, 0, 0, 70 });
+        }
+    //}
 
-    DrawRectangle((int)playerMinimapX, (int)playerMinimapY, 4, 4, RED);
+    const Texture2D& texture = resourceManager.getTexture("miniMapCursor");
+    DrawTexturePro(
+        texture,
+        { 0, 0, (float)texture.width, (float)texture.height }, // Flip Y
+        { playerMinimapX -10, playerMinimapY -10, (float)texture.width * 3, (float)texture.width * 3 },
+        { 0, 0 },
+        0.0f,
+        WHITE
+    );    
+    //DrawRectangle((int)playerMinimapX, (int)playerMinimapY, 4, 4, RED);
 
     // --- Disable scissor ---
     EndScissorMode();
 
     // Optional: draw a border around the minimap
     DrawRectangleLines((int)minimapPositionVirtual.x, (int)minimapPositionVirtual.y, Constants::MINIMAP_WIDTH, Constants::MINIMAP_HEIGHT, BLACK);
+}
+
+void Game::checkWin()
+{
+    const std::vector<Position>& pos = player.getDigPositions();
+
+    if (pos.empty())
+        return;
+
+    if (targetPosition.x == pos.back().x && targetPosition.y == pos.back().y)
+    {
+        win = true;
+    }
 }
 
 
@@ -152,7 +200,7 @@ void Game::draw()
 
     // --- Draw to the offscreen buffer at virtual resolution ---
     BeginTextureMode(renderTexture);
-    ClearBackground(RAYWHITE);
+    ClearBackground(SKYBLUE);
 
     BeginMode2D(camera);
 
@@ -169,12 +217,26 @@ void Game::draw()
     drawHighlight();
 
     EndMode2D();
+    DrawTextEx(resourceManager.getFont(), TextFormat("Timer: %.2f", countdown),
+        {20, 20}, 60, 4.f, BLACK);
+
+    //DrawText(TextFormat("Timer: %.2f", countdown), 20, 20, 60, RED);
+    if (win)
+    {
+        DrawText("YOU WIIIIIIIIIIINNN!", 200, 200, 60, YELLOW);
+    }
+
+    if (countdown <= 0.0f)
+    {
+        DrawText("YOU LOSTTTTTTT!", 200, 200, 60, RED);
+    }
+
     drawMinimap();
     EndTextureMode();
 
     // --- Draw the render texture to the window, scaled ---
     BeginDrawing();
-    ClearBackground(GREEN);
+    ClearBackground(SKYBLUE);
 
     Rectangle src = { 0.0f, 0.0f, (float)renderTexture.texture.width, -(float)renderTexture.texture.height };
     Rectangle dest = { (float)offsetX, (float)offsetY, (float)scaledWidth, (float)scaledHeight };
@@ -207,11 +269,21 @@ void Game::drawDebugGrid() const
     }
 }
 
-void Game::drawHoles() const
+void Game::drawHoles()
 {
     const std::vector<Position>& vec = player.getDigPositions();
+    if (vec.empty())
+        return;
+
     const Texture2D& texture = resourceManager.getTexture("hole");
 
+    Position pos = vec.back();
+
+    if (isSolidBlock(pos.x / 32, pos.y / 32))
+    {
+        player.popDigPosition();
+    }
+    
     for (int i = 0; i < vec.size(); i++)
     {
         int holeX = (vec[i].x / 32) * 32;
@@ -255,9 +327,11 @@ void Game::generateSolidBlocks()
         {
             int randomNumber = getRandomNumberInInterval(1, 100);
 
-            if (randomNumber <= 5)
+            if (randomNumber <= 5 || i == 0 || j == 0 || 
+                i == Constants::MAP_WIDTH_TILES - 1 || 
+                j == Constants::MAP_HEIGHT_TILES - 1)
             {
-                randomNumber = getRandomNumberInInterval(0, 1);
+                randomNumber = getRandomNumberInInterval(0, 3);
                 solidBlocks.push_back({ {i, j}, (SolidBlockType)randomNumber });
             }
         }
@@ -272,6 +346,10 @@ std::string Game::stringFromEnum(SolidBlockType type) const
         return "bigRock";
     case SolidBlockType::WOOD:
         return "wood";
+    case SolidBlockType::ROCK_GREEN1:
+        return "rockGreen1";
+    case SolidBlockType::ROCK_GREEN2:
+        return "rockGreen2";
     }
 
     return "";
@@ -288,13 +366,22 @@ void Game::drawSolidBlocks() const
     }
 }
 
-void Game::drawCircles() const
+void Game::drawCircles()
 {
-    for (Position pos : circles)
-    {
-        int radius = getCircleRadius(pos);
-        DrawCircle(pos.x, pos.y, radius, { 0, 0, 255, 40 });
-    }
+    float var = 20.0 * GetFrameTime();
+    player.circleDelay -= var;
+    
+   // if(player.circleDelay > 0.1)
+    //lastEventTime += var;
+
+   // if ((player.circleDelay - 0.0) < 0.001)
+    //{
+        for (Position pos : circles)
+        {
+            int radius = getCircleRadius(pos);
+            DrawCircle(pos.x, pos.y, radius, { 0, 0, 255, 10 });
+        }
+    //}
 }
 
 int Game::getCircleRadius(Position pos) const

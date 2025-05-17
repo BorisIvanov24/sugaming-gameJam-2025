@@ -9,3 +9,13 @@ const Texture2D& ResourceManager::getTexture(const std::string& textureName) con
 {
 	return map.at(textureName);
 }
+
+void ResourceManager::setFont(const Font& font)
+{
+	this->font = font;
+}
+
+const Font& ResourceManager::getFont() const
+{
+	return font;
+}

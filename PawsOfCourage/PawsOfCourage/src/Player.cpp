@@ -22,6 +22,10 @@ std::string Player::enumToString(PlayerState playerState) const
 		return "dig_left";
 	case PlayerState::DIG_RIGHT:
 		return "dig_right";
+	case PlayerState::SNIFF_LEFT:
+		return "sniff_left";
+	case PlayerState::SNIFF_RIGHT:
+		return "sniff_right";
 	default:
 		break;
 	}
@@ -60,6 +64,14 @@ Position Player::getHighlightPos() const
 const std::vector<Position>& Player::getDigPositions() const
 {
 	return digPositions;
+}
+
+void Player::popDigPosition()
+{
+	if (digPositions.empty())
+		return;
+
+	digPositions.pop_back();
 }
 
 Player::Player(const Position& position, int hitBoxSize, float movementSpeed)
@@ -124,10 +136,9 @@ PlayerState Player::update()
 		position.y += toAdd;
 		currentState = PlayerState::DOWN;
 	}
-	else if (IsKeyPressed(KEY_SPACE))
+	else if (IsKeyPressed(KEY_ENTER))
 	{
 		digPositions.push_back(getHighlightPos());
-		isDigging = true;
 
 		if (currentState == PlayerState::IDLE_LEFT)
 			currentState = PlayerState::DIG_LEFT;
@@ -142,6 +153,17 @@ PlayerState Player::update()
 	else if (currentState == PlayerState::RIGHT || currentState == PlayerState::UP)
 	{
 		currentState = PlayerState::IDLE_RIGHT;
+	}
+
+	if (IsKeyPressed(KEY_SPACE))
+	{
+		isDigging = true;
+		circleDelay = 30.0;
+
+		if (currentState == PlayerState::IDLE_LEFT)
+			currentState = PlayerState::SNIFF_LEFT;
+		else
+			currentState = PlayerState::SNIFF_RIGHT;
 	}
 
 	return currentState;

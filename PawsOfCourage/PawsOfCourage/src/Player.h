@@ -14,7 +14,9 @@ enum class PlayerState
 	UP,
 	DOWN,
 	DIG_LEFT,
-	DIG_RIGHT
+	DIG_RIGHT,
+	SNIFF_LEFT,
+	SNIFF_RIGHT
 };
 
 struct Position
@@ -38,6 +40,7 @@ class Player
 public:
 
 	bool isDigging = false;
+	double circleDelay = 2.0;
 	Player(const Position& position, int hitBoxSize, float movementSpeed);
 	PlayerState update();
 	void addAnimation(const Animation& animation, PlayerState playerState);
@@ -50,5 +53,6 @@ public:
 	Position getHighlightPos() const;
 
 	const std::vector<Position>& getDigPositions() const;
+	void popDigPosition();
 };
 

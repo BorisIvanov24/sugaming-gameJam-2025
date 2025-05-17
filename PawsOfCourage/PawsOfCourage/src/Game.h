@@ -9,7 +9,9 @@
 enum class SolidBlockType
 {
 	BIG_ROCK,
-	WOOD
+	WOOD,
+	ROCK_GREEN1,
+	ROCK_GREEN2
 };
 
 struct SolidBLock
@@ -20,6 +22,8 @@ struct SolidBLock
 
 class Game
 {
+	float countdown = 120.0f;
+	bool win = false;
 	double lastEventTime = 0.0;
 	RenderTexture2D renderTexture;
 	ResourceManager resourceManager;
@@ -35,7 +39,7 @@ class Game
 
 	void updateCircles();
 	void drawDebugGrid() const;
-	void drawHoles() const;
+	void drawHoles();
 	void drawHighlight() const;
 	Rectangle getHighlightRec() const;
 	bool isHighlighSolid() const;
@@ -44,7 +48,7 @@ class Game
 	std::string stringFromEnum(SolidBlockType type) const;
 	void drawSolidBlocks() const;
 
-	void drawCircles() const;
+	void drawCircles();
 	int getCircleRadius(Position pos) const;
 
 	bool checkPlayerCollision() const;
@@ -55,6 +59,8 @@ class Game
 	bool isSolidBlock(int x, int y) const;
 
 	void drawMinimap();
+
+	void checkWin();
 public:
 
 	static float scale;
