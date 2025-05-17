@@ -1,9 +1,15 @@
 #include "Game.h"
 #include "Constants.h"
+#include <fstream>
+#include <random>
 
 float Game::scale = 0.0f;
 
-Game::Game() : player({200, 200}, 32, 170.f)
+const int MINIMAP_WIDTH = 320;   // Example: 1/10th of world width
+const int MINIMAP_HEIGHT = 180;  // Maintain aspect ratio
+
+
+Game::Game() : player({200, 200}, 20, 170.f)
 {
     renderTexture = LoadRenderTexture(Constants::VIRTUAL_WIDTH, Constants::VIRTUAL_HEIGHT);
     SetTextureFilter(renderTexture.texture, TEXTURE_FILTER_BILINEAR);
@@ -22,6 +28,9 @@ Game::Game() : player({200, 200}, 32, 170.f)
     resourceManager.loadTexture("idleRight", "Assets/IdleRight.png");
     resourceManager.loadTexture("walkDown", "Assets/WalkDown.png");
     resourceManager.loadTexture("walkUp", "Assets/WalkUp.png");
+
+    resourceManager.loadTexture("bigRock", "Assets/BigRock.png");
+    resourceManager.loadTexture("wood", "Assets/Wood.png");
 
     Animation animationLeft(resourceManager.getTexture("walkLeft"), 
                             8, 32, 0.09f, REPEATING);
@@ -49,6 +58,9 @@ Game::Game() : player({200, 200}, 32, 170.f)
     player.addAnimation(animationDigLeft, PlayerState::DIG_LEFT);
     player.addAnimation(animationDigRight, PlayerState::DIG_RIGHT);
 
+    generateSolidBlocks();
+    player.setPosition(genPlayerStartPosition());
+    targetPosition = genTargetPosition();
 }
 
 void Game::input()
@@ -64,9 +76,64 @@ void Game::update()
         (float)GetScreenHeight() / Constants::VIRTUAL_HEIGHT
     );
 
+    Position oldPos = player.getPosition();
     player.update();
+    if (checkPlayerCollision())
+    {
+        player.setPosition(oldPos);
+    }
+
     camera.target = { (float)player.getPosition().x, (float)player.getPosition().y };
 }
+
+void Game::drawMinimap()
+{
+    Vector2 minimapPositionVirtual = { 1920 - MINIMAP_WIDTH - 10, 10 };
+
+    const Texture2D& worldTexture = resourceManager.getTexture("map");
+
+    // --- Set up scissor (clip) region ---
+    BeginScissorMode((int)minimapPositionVirtual.x, (int)minimapPositionVirtual.y, MINIMAP_WIDTH, MINIMAP_HEIGHT);
+
+    // --- Draw minimap texture ---
+    DrawTexturePro(
+        worldTexture,
+        { 0, 0, (float)worldTexture.width, (float)-worldTexture.height }, // Flip Y
+        { minimapPositionVirtual.x, minimapPositionVirtual.y, (float)MINIMAP_WIDTH, (float)MINIMAP_HEIGHT },
+        { 0, 0 },
+        0.0f,
+        WHITE
+    );
+
+    float scaleX = (float)MINIMAP_WIDTH / worldTexture.width;
+    float scaleY = (float)MINIMAP_HEIGHT / worldTexture.height;
+
+    float playerMinimapX = minimapPositionVirtual.x + player.getPosition().x * scaleX;
+    float playerMinimapY = minimapPositionVirtual.y + player.getPosition().y * scaleY;
+
+    float targetMinimapX = minimapPositionVirtual.x + targetPosition.x * scaleX;
+    float targetMinimapY = minimapPositionVirtual.y + targetPosition.y * scaleY;
+
+    for (const auto& pos : player.getDigPositions())
+    {
+        float circleMinimapX = minimapPositionVirtual.x + pos.x * scaleX;
+        float circleMinimapY = minimapPositionVirtual.y + pos.y * scaleY;
+
+        int radius = sqrtf((circleMinimapX - targetMinimapX) * (circleMinimapX - targetMinimapX) +
+            (circleMinimapY - targetMinimapY) * (circleMinimapY - targetMinimapY));
+
+        DrawCircle(circleMinimapX, circleMinimapY, radius, { 255, 0, 0, 70 });
+    }
+
+    DrawRectangle((int)playerMinimapX, (int)playerMinimapY, 4, 4, RED);
+
+    // --- Disable scissor ---
+    EndScissorMode();
+
+    // Optional: draw a border around the minimap
+    DrawRectangleLines((int)minimapPositionVirtual.x, (int)minimapPositionVirtual.y, MINIMAP_WIDTH, MINIMAP_HEIGHT, BLACK);
+}
+
 
 void Game::draw()
 {
@@ -82,10 +149,17 @@ void Game::draw()
     BeginMode2D(camera);
 
     DrawTexture(resourceManager.getTexture("map"), 0, 0, RAYWHITE);
+    drawSolidBlocks();
+
+    if(IsKeyDown(KEY_T))
+    DrawRectangle(targetPosition.x, targetPosition.y, 32, 32, YELLOW);
+    drawCircles();
     //drawDebugGrid();
     player.draw();
     drawHighlight();
 
+    EndMode2D();
+    drawMinimap();
     EndTextureMode();
 
     // --- Draw the render texture to the window, scaled ---
@@ -113,12 +187,154 @@ void Game::drawDebugGrid() const
 
 void Game::drawHighlight() const
 {
+    Color color = { 0,255, 0, 40 };
+
+    if (isHighlighSolid())
+    color = { 255,0, 0, 70 };
+
+    DrawRectangleRec(getHighlightRec(), color);
+}
+
+Rectangle Game::getHighlightRec() const
+{
     Position pawsPosition = player.getPawsPosition();
 
     pawsPosition.x = (pawsPosition.x / 32) * 32;
     pawsPosition.y = (pawsPosition.y / 32) * 32;
 
-    DrawRectangle(pawsPosition.x, pawsPosition.y, 32, 32, {0,255, 0, 40});
+    return { (float)pawsPosition.x, (float)pawsPosition.y, 32, 32 };
+}
+
+bool Game::isHighlighSolid() const
+{
+    Rectangle rec = getHighlightRec();
+
+    return isSolidBlock((int)rec.x / 32, (int)rec.y / 32);
+}
+
+void Game::generateSolidBlocks()
+{
+    for (int i = 0; i < Constants::MAP_WIDTH_TILES; i++)
+    {
+        for (int j = 0; j < Constants::MAP_HEIGHT_TILES; j++)
+        {
+            int randomNumber = getRandomNumberInInterval(1, 100);
+
+            if (randomNumber <= 5)
+            {
+                randomNumber = getRandomNumberInInterval(0, 1);
+                solidBlocks.push_back({ {i, j}, (BlockType)randomNumber });
+            }
+        }
+    }
+}
+
+std::string Game::getStringFromEnum(BlockType type) const
+{
+    switch (type)
+    {
+    case BlockType::BIG_ROCK:
+        return "bigRock";
+    case BlockType::WOOD:
+        return "wood";
+    }
+
+    return "";
+}
+
+void Game::drawSolidBlocks() const
+{
+    for (int i = 0; i < solidBlocks.size(); i++)
+    {
+        BlockType blockType = solidBlocks[i].type;
+
+        DrawTexture(resourceManager.getTexture(getStringFromEnum(blockType)),
+            solidBlocks[i].pos.x * 32, solidBlocks[i].pos.y * 32, RAYWHITE);
+    }
+}
+
+void Game::drawCircles() const
+{
+    const std::vector<Position>& digPositions = player.getDigPositions();
+
+    for (int i = 0; i < digPositions.size(); i++)
+    {
+        int radius = getCircleRadius(digPositions[i]);
+        DrawCircle(digPositions[i].x, digPositions[i].y, radius, { 0, 0, 255, 40 });
+    }
+}
+
+int Game::getCircleRadius(Position pos) const
+{
+    int dist = sqrt((pos.x - targetPosition.x) * (pos.x - targetPosition.x) +
+               (pos.y - targetPosition.y) * (pos.y - targetPosition.y));
+
+    return dist + 64;
+}
+
+bool Game::checkPlayerCollision() const
+{
+    Position pos = player.getPosition();
+
+    for (int i = 0; i < solidBlocks.size(); i++)
+    {
+        Rectangle rec1 = player.getHitBox();
+        Rectangle rec = { (float)solidBlocks[i].pos.x*32, (float)solidBlocks[i].pos.y*32, 32, 32 };
+        
+        if (CheckCollisionRecs(rec1, rec))
+            return true;
+    }
+    return false;
+}
+
+Position Game::genPlayerStartPosition() const
+{
+    Position pos;
+
+    do
+    {
+        pos.x = getRandomNumberInInterval(1, 79);
+        pos.y = getRandomNumberInInterval(1, 44);
+
+    } while (isSolidBlock(pos.x, pos.y));
+
+    return { pos.x * 32, pos.y * 32 };
+}
+
+Position Game::genTargetPosition() const
+{
+    Position pos;
+
+    do
+    {
+        pos.x = getRandomNumberInInterval(1, 79);
+        pos.y = getRandomNumberInInterval(1, 44);
+
+    } while (isSolidBlock(pos.x, pos.y));
+
+    return { pos.x * 32, pos.y * 32 };
+}
+
+int Game::getRandomNumberInInterval(int left, int right) const
+{
+    std::random_device rd;  // Seed
+    std::mt19937 gen(rd()); // Mersenne Twister engine
+    std::uniform_int_distribution<int> dist(left, right);
+
+    return dist(gen);
+}
+
+bool Game::isSolidBlock(int x, int y) const
+{
+    for (int i = 0; i < solidBlocks.size(); i++)
+    {
+        Position pos = solidBlocks[i].pos;
+
+        if (pos.x == x && pos.y == y)
+            return true;
+    }
+
+    return false;
 }
 
 void Game::run()

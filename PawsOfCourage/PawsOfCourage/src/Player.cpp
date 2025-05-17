@@ -2,6 +2,9 @@
 #include <iostream>
 #include "Constants.h"
 
+int offsetX = 7;
+int offsetY = 7;
+
 std::string Player::enumToString(PlayerState playerState) const
 {
 	switch (playerState)
@@ -31,10 +34,25 @@ Position Player::getPawsPosition() const
 {
 	Position pawsPosition;
 
-	pawsPosition.x = position.x + (hitBoxSize / 2);
-	pawsPosition.y = position.y + hitBoxSize;
+	pawsPosition.x = position.x + (32 / 2);
+	pawsPosition.y = position.y + 32;
 
 	return pawsPosition;
+}
+
+void Player::setPosition(Position newPos)
+{
+	position = newPos;
+}
+
+int Player::getHitBoxSize() const
+{
+	return hitBoxSize;
+}
+
+const std::vector<Position>& Player::getDigPositions() const
+{
+	return digPositions;
 }
 
 Player::Player(const Position& position, int hitBoxSize, float movementSpeed)
@@ -53,7 +71,31 @@ void Player::update()
 	std::string currentAnimStr = enumToString(currentState);
 	anims[currentAnimStr].animationUpdate();
 
-	if (IsKeyDown(KEY_D))
+	if (IsKeyDown(KEY_A) && IsKeyDown(KEY_W))
+	{
+		position.x -= toAdd;
+		position.y -= toAdd;
+		currentState = PlayerState::LEFT;
+	}
+	else if (IsKeyDown(KEY_S) && IsKeyDown(KEY_A))
+	{
+		position.x -= toAdd;
+		position.y += toAdd;
+		currentState = PlayerState::LEFT;
+	}
+	else if (IsKeyDown(KEY_D) && IsKeyDown(KEY_S))
+	{
+		position.x += toAdd;
+		position.y += toAdd;
+		currentState = PlayerState::RIGHT;
+	}
+	else if (IsKeyDown(KEY_D) && IsKeyDown(KEY_W))
+	{
+		position.x += toAdd;
+		position.y -= toAdd;
+		currentState = PlayerState::RIGHT;
+	}
+	else if (IsKeyDown(KEY_D))
 	{
 		position.x += toAdd;
 		currentState = PlayerState::RIGHT;
@@ -76,6 +118,8 @@ void Player::update()
 	}
 	else if (IsKeyPressed(KEY_SPACE))
 	{
+		digPositions.push_back(position);
+
 		if(currentState == PlayerState::IDLE_LEFT)
 		currentState = PlayerState::DIG_LEFT;
 		else
@@ -102,7 +146,9 @@ void Player::addAnimation(const Animation& animation, PlayerState playerState)
 
 Rectangle Player::getHitBox() const
 {
-	return {(float)position.x, (float)position.y, (float)hitBoxSize, (float)hitBoxSize};
+	offsetX = 7;
+	offsetY = 7;
+	return {(float)position.x + offsetX, (float)position.y + offsetY, (float)hitBoxSize, (float)hitBoxSize};
 }
 
 void Player::draw() const
@@ -112,7 +158,7 @@ void Player::draw() const
 	DrawTextureRec(anims.at(currentAnimStr).getTexture(), anims.at(currentAnimStr).animationFrame(),
 		{ (float)position.x, (float)position.y }, RAYWHITE);
 
-	//DrawRectangleLines(position.x, position.y, (float)hitBoxSize, (float)hitBoxSize, BLACK);
+	//DrawRectangleLines(getHitBox().x, getHitBox().y, getHitBox().width, getHitBox().height, BLACK);
 }
 
 Position Player::getPosition() const

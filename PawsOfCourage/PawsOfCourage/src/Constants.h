@@ -9,4 +9,7 @@ namespace Constants
 	const int DEFAULT_HEIGHT = 810;
 
 	const int KEY_BUTTON_MOVEMENT = 4;
+
+	const int MAP_WIDTH_TILES = 80;
+	const int MAP_HEIGHT_TILES = 45;
 }

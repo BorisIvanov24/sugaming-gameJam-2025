@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include "Animation.h"
+#include <vector>
 
 enum class PlayerState
 {
@@ -30,6 +31,8 @@ class Player
 	PlayerState currentState;
 	std::unordered_map<std::string, Animation> anims;
 
+	std::vector<Position> digPositions;
+
 	std::string enumToString(PlayerState playerState) const;
 
 public:
@@ -41,5 +44,9 @@ public:
 	void draw() const;
 	Position getPosition() const;
 	Position getPawsPosition() const;
+	void setPosition(Position newPos);
+	int getHitBoxSize() const;
+
+	const std::vector<Position>& getDigPositions() const;
 };
 
