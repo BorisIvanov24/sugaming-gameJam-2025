@@ -14,6 +14,15 @@ enum class SolidBlockType
 	ROCK_GREEN2
 };
 
+enum class ScreenState
+{
+	MAIN_MENU,
+	COMICS,
+	GAME,
+	WIN,
+	LOSE
+};
+
 struct SolidBLock
 {
 	Position pos;
@@ -21,8 +30,9 @@ struct SolidBLock
 };
 
 class Game
-{
-	float countdown = 120.0f;
+{	
+	ScreenState screenState = ScreenState::MAIN_MENU;
+	float countdown = 30.0f;
 	bool win = false;
 	double lastEventTime = 0.0;
 	RenderTexture2D renderTexture;
@@ -32,6 +42,8 @@ class Game
 	Position targetPosition;
 	std::vector<SolidBLock> solidBlocks;
 	std::deque<Position> circles;
+
+	void resetGameStats();
 
 	void input();
 	void update();

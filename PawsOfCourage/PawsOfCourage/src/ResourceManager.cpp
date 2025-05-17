@@ -1,5 +1,15 @@
 #include "ResourceManager.h"
 
+void ResourceManager::loadMusic(const std::string& musicName, const std::string& filePath)
+{
+	mapMusic[musicName] = LoadMusicStream(filePath.c_str());
+}
+
+const Music& ResourceManager::getMusic(const std::string& musicName) const
+{
+	return mapMusic.at(musicName);
+}
+
 void ResourceManager::loadTexture(const std::string& textureName, const std::string& filePath)
 {
 	map[textureName] = LoadTexture(filePath.c_str());

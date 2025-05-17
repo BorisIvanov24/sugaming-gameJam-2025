@@ -54,5 +54,6 @@ public:
 
 	const std::vector<Position>& getDigPositions() const;
 	void popDigPosition();
+	void clearDigPositions();
 };
 

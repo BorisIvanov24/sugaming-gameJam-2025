@@ -74,6 +74,11 @@ void Player::popDigPosition()
 	digPositions.pop_back();
 }
 
+void Player::clearDigPositions()
+{
+	digPositions.clear();
+}
+
 Player::Player(const Position& position, int hitBoxSize, float movementSpeed)
 {
 	this->position = position;

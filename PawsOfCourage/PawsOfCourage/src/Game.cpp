@@ -39,6 +39,17 @@ Game::Game() : player({200, 200}, 20, 170.f)
     //Fonts
     resourceManager.setFont(LoadFont("Assets/Font.ttf"));
 
+    //Music
+    resourceManager.loadMusic("menuMusic", "Assets/MusicMenu.wav");
+    resourceManager.loadMusic("gameMusic", "Assets/MusicGame.wav");
+    resourceManager.loadMusic("winMusic", "Assets/Victory.wav");
+    resourceManager.loadMusic("loseMusic", "Assets/LoseMusic.wav");
+
+    SetMusicVolume(resourceManager.getMusic("menuMusic"), 0.75f);
+    SetMusicVolume(resourceManager.getMusic("gameMusic"), 0.75f);
+    SetMusicVolume(resourceManager.getMusic("winMusic"), 0.75f);
+    SetMusicVolume(resourceManager.getMusic("loseMusic"), 0.75f);
+
     Animation animationSniffLeft(resourceManager.getTexture("sniffLeft"),
         6, 32, 0.09f, REPEATING);
     Animation animationSniffRight(resourceManager.getTexture("sniffRight"),
@@ -76,6 +87,16 @@ Game::Game() : player({200, 200}, 20, 170.f)
     targetPosition = genTargetPosition();
 }
 
+void Game::resetGameStats()
+{
+    countdown = 100.0f;
+    player.clearDigPositions();
+    targetPosition = genTargetPosition();
+    circles.clear();
+    player.setPosition(genPlayerStartPosition());
+    SeekMusicStream(resourceManager.getMusic("gameMusic"), 0.0f);
+}
+
 void Game::input()
 {
 
@@ -83,38 +104,64 @@ void Game::input()
 
 void Game::update()
 {
-    checkWin();
+    if (screenState == ScreenState::MAIN_MENU)
+    {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            screenState = ScreenState::COMICS;
+    }
+    else if (screenState == ScreenState::COMICS)
+    {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            screenState = ScreenState::GAME;
+    }
+    else if (screenState == ScreenState::GAME)
+    {
+        checkWin();
+
+        if (countdown > 0.0f)
+        {
+            countdown -= GetFrameTime();  // Decrease based on frame time
+            if (countdown < 0.0f) countdown = 0.0f;  // Clamp to 0
+        }
+
+        Position oldPos = player.getPosition();
+        player.update();
+
+        if (player.isDigging)
+        {
+            circles.push_front(player.getPosition());
+            lastEventTime = GetTime();
+            player.isDigging = false;
+        }
+
+        updateCircles();
+
+        if (checkPlayerCollision())
+        {
+            player.setPosition(oldPos);
+        }
+
+        camera.target = { (float)player.getPosition().x, (float)player.getPosition().y };
+    }
+    else if (screenState == ScreenState::WIN)
+    {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            screenState = ScreenState::GAME;
+        resetGameStats();
+    }
+    else if (screenState == ScreenState::LOSE)
+    {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            screenState = ScreenState::GAME;
+        resetGameStats();
+
+    }
 
     //update scale
     scale = std::min(
         (float)GetScreenWidth() / Constants::VIRTUAL_WIDTH,
         (float)GetScreenHeight() / Constants::VIRTUAL_HEIGHT
     );
-
-    if (countdown > 0.0f)
-    {
-        countdown -= GetFrameTime();  // Decrease based on frame time
-        if (countdown < 0.0f) countdown = 0.0f;  // Clamp to 0
-    }
-
-    Position oldPos = player.getPosition();
-    player.update();
-
-    if (player.isDigging)
-    {
-        circles.push_front(player.getPosition());
-        lastEventTime = GetTime();
-        player.isDigging = false;
-    }
-    
-    updateCircles();
-
-    if (checkPlayerCollision())
-    {
-        player.setPosition(oldPos);
-    }
-
-    camera.target = { (float)player.getPosition().x, (float)player.getPosition().y };
 }
 
 void Game::drawMinimap()
@@ -186,55 +233,95 @@ void Game::checkWin()
 
     if (targetPosition.x == pos.back().x && targetPosition.y == pos.back().y)
     {
-        win = true;
+        screenState = ScreenState::WIN;
     }
 }
 
 
 void Game::draw()
 {
+    if (screenState == ScreenState::MAIN_MENU)
+    {
+        PlayMusicStream(resourceManager.getMusic("menuMusic"));
+        UpdateMusicStream(resourceManager.getMusic("menuMusic"));
+        BeginTextureMode(renderTexture);
+        ClearBackground(SKYBLUE);
+        DrawTextEx(resourceManager.getFont(), "THIS IS MAIN MENU",
+            { 400, 400 }, 60, 2.f, BLACK);
+        EndTextureMode();
+    }
+    else if (screenState == ScreenState::COMICS)
+    {
+        BeginTextureMode(renderTexture);
+        ClearBackground(SKYBLUE);
+        DrawTextEx(resourceManager.getFont(), "THIS IS COMICS",
+            { 400, 400 }, 60, 2.f, BLACK);
+        EndTextureMode();
+    }
+    else if (screenState == ScreenState::GAME)
+    {
+        PlayMusicStream(resourceManager.getMusic("gameMusic"));
+        UpdateMusicStream(resourceManager.getMusic("gameMusic"));
+        // --- Draw to the offscreen buffer at virtual resolution ---
+        BeginTextureMode(renderTexture);
+        ClearBackground(SKYBLUE);
+
+        BeginMode2D(camera);
+
+        DrawTexture(resourceManager.getTexture("map"), 0, 0, RAYWHITE);
+        drawSolidBlocks();
+
+        if (IsKeyDown(KEY_T))
+            DrawRectangle(targetPosition.x, targetPosition.y, 32, 32, YELLOW);
+
+        drawHoles();
+        drawCircles();
+        //drawDebugGrid();
+        player.draw();
+        drawHighlight();
+
+        EndMode2D();
+        DrawTextEx(resourceManager.getFont(), TextFormat("Timer: %.2f", countdown),
+            { 20, 20 }, 60, 4.f, BLACK);
+
+        //DrawText(TextFormat("Timer: %.2f", countdown), 20, 20, 60, RED);
+
+        if (countdown <= 0.0f)
+        {
+            screenState = ScreenState::LOSE;
+        }
+
+        drawMinimap();
+        EndTextureMode();
+    }
+    else if (screenState == ScreenState::WIN)
+    {
+        PlayMusicStream(resourceManager.getMusic("winMusic"));
+        UpdateMusicStream(resourceManager.getMusic("winMusic"));
+        BeginTextureMode(renderTexture);
+        ClearBackground(SKYBLUE);
+        DrawTextEx(resourceManager.getFont(), "THIS IS WIN",
+            { 400, 400 }, 60, 2.f, BLACK);
+        EndTextureMode();
+    }
+    else if (screenState == ScreenState::LOSE)
+    {
+        PlayMusicStream(resourceManager.getMusic("loseMusic"));
+        UpdateMusicStream(resourceManager.getMusic("loseMusic"));
+        BeginTextureMode(renderTexture);
+        ClearBackground(SKYBLUE);
+        DrawTextEx(resourceManager.getFont(), "THIS IS LOSE",
+            { 400, 400 }, 60, 2.f, BLACK);
+        EndTextureMode();
+    }
+   
+
+    // --- Draw the render texture to the window, scaled ---
     int scaledWidth = Constants::VIRTUAL_WIDTH * scale;
     int scaledHeight = Constants::VIRTUAL_HEIGHT * scale;
     int offsetX = (GetScreenWidth() - scaledWidth) / 2;
     int offsetY = (GetScreenHeight() - scaledHeight) / 2;
 
-    // --- Draw to the offscreen buffer at virtual resolution ---
-    BeginTextureMode(renderTexture);
-    ClearBackground(SKYBLUE);
-
-    BeginMode2D(camera);
-
-    DrawTexture(resourceManager.getTexture("map"), 0, 0, RAYWHITE);
-    drawSolidBlocks();
-
-    if(IsKeyDown(KEY_T))
-        DrawRectangle(targetPosition.x, targetPosition.y, 32, 32, YELLOW);
-
-    drawHoles();
-    drawCircles();
-    //drawDebugGrid();
-    player.draw();
-    drawHighlight();
-
-    EndMode2D();
-    DrawTextEx(resourceManager.getFont(), TextFormat("Timer: %.2f", countdown),
-        {20, 20}, 60, 4.f, BLACK);
-
-    //DrawText(TextFormat("Timer: %.2f", countdown), 20, 20, 60, RED);
-    if (win)
-    {
-        DrawText("YOU WIIIIIIIIIIINNN!", 200, 200, 60, YELLOW);
-    }
-
-    if (countdown <= 0.0f)
-    {
-        DrawText("YOU LOSTTTTTTT!", 200, 200, 60, RED);
-    }
-
-    drawMinimap();
-    EndTextureMode();
-
-    // --- Draw the render texture to the window, scaled ---
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
