@@ -37,8 +37,9 @@ class Player
 
 public:
 
+	bool isDigging = false;
 	Player(const Position& position, int hitBoxSize, float movementSpeed);
-	void update();
+	PlayerState update();
 	void addAnimation(const Animation& animation, PlayerState playerState);
 	Rectangle getHitBox() const;
 	void draw() const;

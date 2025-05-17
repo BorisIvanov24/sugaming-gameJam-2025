@@ -15,4 +15,6 @@ namespace Constants
 
 	const int MINIMAP_WIDTH = 400;
 	const int MINIMAP_HEIGHT = 225;
+
+	const float CIRCLE_REMOVAL_INTERVAL = 4.0;
 }

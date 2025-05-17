@@ -76,6 +76,16 @@ void Game::update()
 
     Position oldPos = player.getPosition();
     player.update();
+
+    if (player.isDigging)
+    {
+        circles.push_front(player.getPosition());
+        lastEventTime = GetTime();
+        player.isDigging = false;
+    }
+    
+    updateCircles();
+
     if (checkPlayerCollision())
     {
         player.setPosition(oldPos);
@@ -112,7 +122,7 @@ void Game::drawMinimap()
     float targetMinimapX = minimapPositionVirtual.x + targetPosition.x * scaleX;
     float targetMinimapY = minimapPositionVirtual.y + targetPosition.y * scaleY;
 
-    for (const auto& pos : player.getDigPositions())
+    for (const auto& pos : circles)
     {
         float circleMinimapX = minimapPositionVirtual.x + pos.x * scaleX;
         float circleMinimapY = minimapPositionVirtual.y + pos.y * scaleY;
@@ -172,6 +182,18 @@ void Game::draw()
     DrawTexturePro(renderTexture.texture, src, dest, { 0, 0 }, 0.0f, WHITE);
 
     EndDrawing();
+}
+
+void Game::updateCircles()
+{
+    if (circles.empty())
+        return;
+
+    if (GetTime() - lastEventTime >= Constants::CIRCLE_REMOVAL_INTERVAL)
+    {
+        lastEventTime = GetTime();
+        circles.pop_back();
+    }
 }
 
 void Game::drawDebugGrid() const
@@ -268,12 +290,10 @@ void Game::drawSolidBlocks() const
 
 void Game::drawCircles() const
 {
-    const std::vector<Position>& digPositions = player.getDigPositions();
-
-    for (int i = 0; i < digPositions.size(); i++)
+    for (Position pos : circles)
     {
-        int radius = getCircleRadius(digPositions[i]);
-        DrawCircle(digPositions[i].x, digPositions[i].y, radius, { 0, 0, 255, 40 });
+        int radius = getCircleRadius(pos);
+        DrawCircle(pos.x, pos.y, radius, { 0, 0, 255, 40 });
     }
 }
 

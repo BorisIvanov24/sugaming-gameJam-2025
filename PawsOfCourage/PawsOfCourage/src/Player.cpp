@@ -68,9 +68,10 @@ Player::Player(const Position& position, int hitBoxSize, float movementSpeed)
 	this->hitBoxSize = hitBoxSize;
 	this->movementSpeed = movementSpeed;
 	currentState = PlayerState::IDLE_LEFT;
+	isDigging = false;
 }
 
-void Player::update()
+PlayerState Player::update()
 {
 	float dt = GetFrameTime();
 	int toAdd = dt * movementSpeed;
@@ -126,11 +127,12 @@ void Player::update()
 	else if (IsKeyPressed(KEY_SPACE))
 	{
 		digPositions.push_back(getHighlightPos());
-		
-		if(currentState == PlayerState::IDLE_LEFT)
-		currentState = PlayerState::DIG_LEFT;
+		isDigging = true;
+
+		if (currentState == PlayerState::IDLE_LEFT)
+			currentState = PlayerState::DIG_LEFT;
 		else
-		currentState = PlayerState::DIG_RIGHT;
+			currentState = PlayerState::DIG_RIGHT;
 
 	}
 	else if(currentState == PlayerState::LEFT || currentState == PlayerState::DOWN)
@@ -142,6 +144,7 @@ void Player::update()
 		currentState = PlayerState::IDLE_RIGHT;
 	}
 
+	return currentState;
 }
 
 void Player::addAnimation(const Animation& animation, PlayerState playerState)

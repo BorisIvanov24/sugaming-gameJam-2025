@@ -4,7 +4,7 @@
 #include "ResourceManager.h"
 #include "Player.h"
 #include <string>
-#include <queue>
+#include <deque>
 
 enum class SolidBlockType
 {
@@ -20,18 +20,20 @@ struct SolidBLock
 
 class Game
 {
+	double lastEventTime = 0.0;
 	RenderTexture2D renderTexture;
 	ResourceManager resourceManager;
 	Camera2D camera;
 	Player player;
 	Position targetPosition;
 	std::vector<SolidBLock> solidBlocks;
-	std::queue<Position> circles;
+	std::deque<Position> circles;
 
 	void input();
 	void update();
 	void draw();
 
+	void updateCircles();
 	void drawDebugGrid() const;
 	void drawHoles() const;
 	void drawHighlight() const;
