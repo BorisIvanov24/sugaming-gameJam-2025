@@ -159,8 +159,7 @@ PlayerState Player::update()
 	{
 		currentState = PlayerState::IDLE_RIGHT;
 	}
-
-	if (IsKeyPressed(KEY_SPACE))
+	else if (IsKeyPressed(KEY_SPACE))
 	{
 		isDigging = true;
 		circleDelay = 30.0;

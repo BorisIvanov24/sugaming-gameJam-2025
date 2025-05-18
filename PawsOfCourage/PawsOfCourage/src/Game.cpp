@@ -36,15 +36,25 @@ Game::Game() : player({200, 200}, 20, 170.f)
     resourceManager.loadTexture("rockGreen2", "Assets/rockGreen2.png");
     resourceManager.loadTexture("miniMapCursor", "Assets/RockyHead.png");
 
+    resourceManager.loadTexture("comics1", "Assets/comics1.png");
+    resourceManager.loadTexture("comics2", "Assets/comics2.png");
+    resourceManager.loadTexture("comics3", "Assets/comics3.png");
+    resourceManager.loadTexture("comics4", "Assets/comics4.png");
+    resourceManager.loadTexture("tutorial", "Assets/Tutorial.png");
+
     //Fonts
     resourceManager.setFont(LoadFont("Assets/Font.ttf"));
 
     //Music
+    resourceManager.loadMusic("casinoMusic", "Assets/Casino.wav");
+    resourceManager.loadMusic("birdsMusic", "Assets/Birds.wav");
     resourceManager.loadMusic("menuMusic", "Assets/MusicMenu.wav");
     resourceManager.loadMusic("gameMusic", "Assets/MusicGame.wav");
     resourceManager.loadMusic("winMusic", "Assets/Victory.wav");
     resourceManager.loadMusic("loseMusic", "Assets/LoseMusic.wav");
 
+    SetMusicVolume(resourceManager.getMusic("casinoMusic"), 0.75f);
+    SetMusicVolume(resourceManager.getMusic("birdsMusic"), 1.f);
     SetMusicVolume(resourceManager.getMusic("menuMusic"), 0.75f);
     SetMusicVolume(resourceManager.getMusic("gameMusic"), 0.75f);
     SetMusicVolume(resourceManager.getMusic("winMusic"), 0.75f);
@@ -89,12 +99,14 @@ Game::Game() : player({200, 200}, 20, 170.f)
 
 void Game::resetGameStats()
 {
-    countdown = 100.0f;
+    sniffsLeft = Constants::SNIFFS_LEFT;
+    countdown = Constants::COUNTDOWN;
     player.clearDigPositions();
     targetPosition = genTargetPosition();
     circles.clear();
     player.setPosition(genPlayerStartPosition());
     SeekMusicStream(resourceManager.getMusic("gameMusic"), 0.0f);
+    winMusic = true;
 }
 
 void Game::input()
@@ -104,19 +116,67 @@ void Game::input()
 
 void Game::update()
 {
-    if (screenState == ScreenState::MAIN_MENU)
+    if (screenState == ScreenState::BEFORE_MENU)
     {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if ((GetKeyPressed() != 0 ||
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+            IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)) && !loading)
+            screenState = ScreenState::MAIN_MENU;
+    } 
+    else if (screenState == ScreenState::MAIN_MENU)
+    {
+        if ((GetKeyPressed() != 0 ||
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+            IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)))
             screenState = ScreenState::COMICS;
     }
     else if (screenState == ScreenState::COMICS)
     {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            screenState = ScreenState::GAME;
+        if (comicsState == ComicsState::SCENE1)
+        {
+            if (GetKeyPressed() != 0 ||
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON))
+                comicsState = ComicsState::SCENE2;
+
+        }
+        else if (comicsState == ComicsState::SCENE2)
+        {
+            if (GetKeyPressed() != 0 ||
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON))
+                comicsState = ComicsState::SCENE3;
+        }
+        else if (comicsState == ComicsState::SCENE3)
+        {
+            if (GetKeyPressed() != 0 ||
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON))
+                comicsState = ComicsState::SCENE4;
+        }
+        else if (comicsState == ComicsState::SCENE4)
+        {
+            if (GetKeyPressed() != 0 ||
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+                IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON))
+                screenState = ScreenState::GAME;
+        }
+        
     }
     else if (screenState == ScreenState::GAME)
     {
         checkWin();
+
+        if (countdown <= 0.0f || sniffsLeft == 0)
+        {
+            screenState = ScreenState::LOSE;
+        }
 
         if (countdown > 0.0f)
         {
@@ -129,6 +189,7 @@ void Game::update()
 
         if (player.isDigging)
         {
+            sniffsLeft--;
             circles.push_front(player.getPosition());
             lastEventTime = GetTime();
             player.isDigging = false;
@@ -146,8 +207,10 @@ void Game::update()
     else if (screenState == ScreenState::WIN)
     {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
             screenState = ScreenState::GAME;
-        resetGameStats();
+            resetGameStats();
+        }
     }
     else if (screenState == ScreenState::LOSE)
     {
@@ -240,10 +303,27 @@ void Game::checkWin()
 
 void Game::draw()
 {
-    if (screenState == ScreenState::MAIN_MENU)
+    if (screenState == ScreenState::BEFORE_MENU)
+    {
+        if (GetTime() > 4.f)
+            loading = false;
+
+        if (loading)
+        {
+            DrawTextEx(resourceManager.getFont(), "Game is loading...",
+                { 400, 400 }, 60, 2.f, BLACK);
+        }
+        else
+        {
+            DrawTextEx(resourceManager.getFont(), "Press any key to continue...",
+                { 400, 400 }, 60, 2.f, BLACK);
+        }
+    }
+    else if (screenState == ScreenState::MAIN_MENU)
     {
         PlayMusicStream(resourceManager.getMusic("menuMusic"));
         UpdateMusicStream(resourceManager.getMusic("menuMusic"));
+      
         BeginTextureMode(renderTexture);
         ClearBackground(SKYBLUE);
         DrawTextEx(resourceManager.getFont(), "THIS IS MAIN MENU",
@@ -252,11 +332,53 @@ void Game::draw()
     }
     else if (screenState == ScreenState::COMICS)
     {
-        BeginTextureMode(renderTexture);
-        ClearBackground(SKYBLUE);
-        DrawTextEx(resourceManager.getFont(), "THIS IS COMICS",
-            { 400, 400 }, 60, 2.f, BLACK);
-        EndTextureMode();
+        if (comicsState == ComicsState::SCENE1)
+        {
+            PlayMusicStream(resourceManager.getMusic("birdsMusic"));
+            UpdateMusicStream(resourceManager.getMusic("birdsMusic"));
+            BeginTextureMode(renderTexture);
+            ClearBackground(SKYBLUE);
+            DrawTexture(resourceManager.getTexture("comics1"), 0, 0, RAYWHITE);
+
+            if(GetMusicTimePlayed(resourceManager.getMusic("birdsMusic")) >= 20.f)
+            DrawTextEx(resourceManager.getFont(), "Press any key to continue...",
+                { 1000, 1000 }, 60, 2.f, BLACK);
+
+            EndTextureMode();
+
+        }
+        else if (comicsState == ComicsState::SCENE2)
+        {
+            PlayMusicStream(resourceManager.getMusic("casinoMusic"));
+            UpdateMusicStream(resourceManager.getMusic("casinoMusic"));
+            BeginTextureMode(renderTexture);
+            ClearBackground(SKYBLUE);
+            DrawTexture(resourceManager.getTexture("comics2"), 0, 0, RAYWHITE);
+
+            if (GetMusicTimePlayed(resourceManager.getMusic("casinoMusic")) >= 20.f)
+            DrawTextEx(resourceManager.getFont(), "Press any key to continue...",
+                { 1300, 1020 }, 40, 2.f, BLACK);
+
+            EndTextureMode();
+        }
+        else if (comicsState == ComicsState::SCENE3)
+        {
+            BeginTextureMode(renderTexture);
+            ClearBackground(SKYBLUE);
+            DrawTexture(resourceManager.getTexture("comics3"), 0, 0, RAYWHITE);
+            DrawTextEx(resourceManager.getFont(), "Press any key to continue...",
+                { 1000, 1000 }, 60, 2.f, BLACK);
+            EndTextureMode();
+        }
+        else if (comicsState == ComicsState::SCENE4)
+        {
+            BeginTextureMode(renderTexture);
+            ClearBackground(SKYBLUE);
+            DrawTexture(resourceManager.getTexture("comics4"), 0, 0, RAYWHITE);
+            DrawTextEx(resourceManager.getFont(), "Press any key to continue...",
+                { 1000, 1000 }, 60, 2.f, BLACK);
+            EndTextureMode();
+        }
     }
     else if (screenState == ScreenState::GAME)
     {
@@ -284,19 +406,27 @@ void Game::draw()
         DrawTextEx(resourceManager.getFont(), TextFormat("Timer: %.2f", countdown),
             { 20, 20 }, 60, 4.f, BLACK);
 
-        //DrawText(TextFormat("Timer: %.2f", countdown), 20, 20, 60, RED);
+        DrawTextEx(resourceManager.getFont(), TextFormat("SniffsLeft: %d", sniffsLeft),
+            { 520, 20 }, 60, 4.f, BLACK);
 
-        if (countdown <= 0.0f)
+        if (countdown > Constants::COUNTDOWN *(2/ 3))
         {
-            screenState = ScreenState::LOSE;
+            DrawTexture(resourceManager.getTexture("tutorial"), 1250, 800, RAYWHITE);
         }
+
+        //DrawText(TextFormat("Timer: %.2f", countdown), 20, 20, 60, RED);
 
         drawMinimap();
         EndTextureMode();
     }
     else if (screenState == ScreenState::WIN)
     {
-        PlayMusicStream(resourceManager.getMusic("winMusic"));
+        if (winMusic)
+        {
+            PlayMusicStream(resourceManager.getMusic("winMusic"));
+            winMusic = false;
+        }
+
         UpdateMusicStream(resourceManager.getMusic("winMusic"));
         BeginTextureMode(renderTexture);
         ClearBackground(SKYBLUE);
@@ -418,7 +548,7 @@ void Game::generateSolidBlocks()
                 i == Constants::MAP_WIDTH_TILES - 1 || 
                 j == Constants::MAP_HEIGHT_TILES - 1)
             {
-                randomNumber = getRandomNumberInInterval(0, 3);
+                randomNumber = getRandomNumberInInterval(0, 1);
                 solidBlocks.push_back({ {i, j}, (SolidBlockType)randomNumber });
             }
         }

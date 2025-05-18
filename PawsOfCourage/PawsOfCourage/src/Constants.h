@@ -17,4 +17,7 @@ namespace Constants
 	const int MINIMAP_HEIGHT = 225;
 
 	const float CIRCLE_REMOVAL_INTERVAL = 2.0;
+
+	const float COUNTDOWN = 100.f;
+	const int SNIFFS_LEFT = 10;
 }

@@ -5,6 +5,7 @@
 #include "Player.h"
 #include <string>
 #include <deque>
+#include "Constants.h"
 
 enum class SolidBlockType
 {
@@ -20,7 +21,16 @@ enum class ScreenState
 	COMICS,
 	GAME,
 	WIN,
-	LOSE
+	LOSE,
+	BEFORE_MENU
+};
+
+enum class ComicsState
+{
+	SCENE1,
+	SCENE2,
+	SCENE3,
+	SCENE4
 };
 
 struct SolidBLock
@@ -31,8 +41,12 @@ struct SolidBLock
 
 class Game
 {	
-	ScreenState screenState = ScreenState::MAIN_MENU;
-	float countdown = 30.0f;
+	int sniffsLeft = Constants::SNIFFS_LEFT;
+	ComicsState comicsState = ComicsState::SCENE1;
+	bool loading = true;
+	bool winMusic = true;
+	ScreenState screenState = ScreenState::BEFORE_MENU;
+	float countdown = Constants::COUNTDOWN;
 	bool win = false;
 	double lastEventTime = 0.0;
 	RenderTexture2D renderTexture;
