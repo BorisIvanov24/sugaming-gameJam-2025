@@ -13,50 +13,100 @@
       align-items: center;
       height: 100vh;
       overflow: hidden;
+      color: white;
+      font-family: sans-serif;
     }
+
+    #loader {
+      text-align: center;
+    }
+
+    #loading-bar-container {
+      width: 300px;
+      height: 20px;
+      background: #444;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    #loading-bar {
+      width: 0%;
+      height: 100%;
+      background: #00ccff;
+      transition: width 3s linear;
+    }
+
     #canvas {
       border: 2px solid white;
       outline: none;
-      /* Optional: set default canvas size here or leave sizing to raylib */
-      /* width: 800px; */
-      /* height: 450px; */
+      display: none; /* Hidden initially */
     }
   </style>
 </head>
 <body>
+  <div id="loader">
+    <div>Loading game...</div>
+    <div id="loading-bar-container">
+      <div id="loading-bar"></div>
+    </div>
+  </div>
+
   <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
 
   <script>
     const canvas = document.getElementById('canvas');
+    const loader = document.getElementById('loader');
+    const loadingBar = document.getElementById('loading-bar');
 
+    let animationDone = false;
+    let raylibReady = false;
+
+    // Start animating the loading bar (3 seconds)
+    setTimeout(() => {
+      loadingBar.style.width = '100%';
+    }, 100);
+
+    // Mark animation done after 3.1 seconds (slightly more than transition)
+    setTimeout(() => {
+      animationDone = true;
+      maybeStartGame();
+    }, 3100);
+
+    // Define the Emscripten Module for raylib
     var Module = {
-      print: (function() {
-        // No output textarea, just clear console
-        return function(...args) {
-          console.log(args.join(' '));
-        };
-      })(),
-
-      canvas: (function() {
-        canvas.addEventListener('webglcontextlost', (e) => {
+      print: function (...args) {
+        console.log(args.join(' '));
+      },
+      canvas: (function () {
+        canvas.addEventListener('webglcontextlost', function (e) {
           alert('WebGL context lost. Please reload the page.');
           e.preventDefault();
         }, false);
         return canvas;
       })(),
-
-      setStatus: function(text) {
-        // no UI status to update, so no-op
+      setStatus: function (text) {
+        console.log('[raylib]', text);
       },
-
       totalDependencies: 0,
-      monitorRunDependencies: function(left) {
-        // no UI progress, so no-op
+      monitorRunDependencies: function (left) {
+        // Optional: could update UI progress here
+      },
+      onRuntimeInitialized: function () {
+        raylibReady = true;
+        maybeStartGame();
       }
     };
 
-    window.onerror = function(event) {
-      // Just log errors to console, no UI updates
+    function maybeStartGame() {
+      if (animationDone && raylibReady) {
+        loader.style.display = 'none';
+        canvas.style.display = 'block';
+        // Game will start now if raylib main() is automatic
+      }
+    }
+
+    window.onerror = function (event) {
       console.error('Exception thrown, see JavaScript console');
     };
   </script>

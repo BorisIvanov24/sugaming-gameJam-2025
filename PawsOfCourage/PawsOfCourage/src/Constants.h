@@ -18,6 +18,6 @@ namespace Constants
 
 	const float CIRCLE_REMOVAL_INTERVAL = 2.0;
 
-	const float COUNTDOWN = 100.f;
-	const int SNIFFS_LEFT = 10;
+	const float COUNTDOWN = 90.f;
+	const int SNIFFS_LEFT = 15;
 }

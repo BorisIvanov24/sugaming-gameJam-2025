@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8" />
+  <title>raylib Web Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      color: white;
+      font-family: sans-serif;
+    }
+
+    #loader {
+      text-align: center;
+    }
+
+    #loading-bar-container {
+      width: 300px;
+      height: 20px;
+      background: #444;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    #loading-bar {
+      width: 0%;
+      height: 100%;
+      background: #00ccff;
+      transition: width 3s linear;
+    }
+
+    #canvas {
+      border: 2px solid white;
+      outline: none;
+      display: none; /* Hidden initially */
+    }
+  </style>
+</head>
+<body>
+  <div id="loader">
+    <div>Loading game...</div>
+    <div id="loading-bar-container">
+      <div id="loading-bar"></div>
+    </div>
+  </div>
+
+  <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const loader = document.getElementById('loader');
+    const loadingBar = document.getElementById('loading-bar');
+
+    // Animate the loading bar
+    setTimeout(() => {
+      loadingBar.style.width = '100%';
+    }, 100);
+
+    // After 3 seconds, hide loader and show canvas
+    setTimeout(() => {
+      loader.style.display = 'none';
+      canvas.style.display = 'block';
+    }, 3000);
+
+    var Module = {
+      print: function (...args) {
+        console.log(args.join(' '));
+      },
+
+      canvas: (function () {
+        canvas.addEventListener('webglcontextlost', (e) => {
+          alert('WebGL context lost. Please reload the page.');
+          e.preventDefault();
+        }, false);
+        return canvas;
+      })(),
+
+      setStatus: function (text) {
+        // no-op
+      },
+
+      totalDependencies: 0,
+      monitorRunDependencies: function (left) {
+        // no-op
+      }
+    };
+
+    window.onerror = function (event) {
+      console.error('Exception thrown, see JavaScript console');
+    };
+  </script>
+
+  {{{ SCRIPT }}}
+</body>
+</html>

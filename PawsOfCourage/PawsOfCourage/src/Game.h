@@ -41,11 +41,12 @@ struct SolidBLock
 
 class Game
 {	
+	double timeAfterWin = 0.f;
 	int sniffsLeft = Constants::SNIFFS_LEFT;
 	ComicsState comicsState = ComicsState::SCENE1;
 	bool loading = true;
 	bool winMusic = true;
-	ScreenState screenState = ScreenState::BEFORE_MENU;
+	ScreenState screenState = ScreenState::MAIN_MENU;
 	float countdown = Constants::COUNTDOWN;
 	bool win = false;
 	double lastEventTime = 0.0;
