@@ -28,6 +28,7 @@ Game::Game() : player({200, 200}, 20, 170.f)
     resourceManager.loadTexture("walkUp", "Assets/WalkUp.png");
     resourceManager.loadTexture("sniffLeft", "Assets/SniffLeft.png");
     resourceManager.loadTexture("sniffRight", "Assets/SniffRight.png");
+    resourceManager.loadTexture("playButton", "Assets/playButton.png");
 
     resourceManager.loadTexture("bigRock", "Assets/BigRock.png");
     resourceManager.loadTexture("wood", "Assets/Wood.png");
@@ -46,7 +47,14 @@ Game::Game() : player({200, 200}, 20, 170.f)
     resourceManager.loadTexture("winScreen", "Assets/WinScreen.png");
     resourceManager.loadTexture("menuScreen", "Assets/MenuScreen.png");
 
-
+    resourceManager.loadTexture("arrow", "Assets/arrow.png");
+    resourceManager.loadTexture("wallLeft", "Assets/wallLeft.png");
+    resourceManager.loadTexture("wallLeftUp", "Assets/wallLeftUp.png");
+    resourceManager.loadTexture("wallLeftDown", "Assets/wallLeftDown.png");
+    resourceManager.loadTexture("wallRightUp", "Assets/wallRightUp.png");
+    resourceManager.loadTexture("wallRightDown", "Assets/wallRightDown.png");
+    resourceManager.loadTexture("wallRight", "Assets/wallRight.png");
+    resourceManager.loadTexture("wallUp", "Assets/wallUp.png");
     //Fonts
     resourceManager.setFont(LoadFont("Assets/Font.ttf"));
 
@@ -90,6 +98,10 @@ Game::Game() : player({200, 200}, 20, 170.f)
         8, 32, 0.07f, REPEATING);
     Animation animationDigRight(resourceManager.getTexture("digRight"),
         8, 32, 0.07f, REPEATING);
+    Animation animationPlayButton(resourceManager.getTexture("playButton"),
+        3, 500, 0.13f, REPEATING);
+
+    playButton = animationPlayButton;
 
     player.addAnimation(animationLeft, PlayerState::LEFT);
     player.addAnimation(animationRight, PlayerState::RIGHT);
@@ -129,11 +141,20 @@ void Game::update()
 {
     if (screenState == ScreenState::MAIN_MENU)
     {
-        if ((GetKeyPressed() != 0 ||
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
-            IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)))
+        if ((IsMouseOverPlayButton() &&
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ))
             screenState = ScreenState::COMICS;
+
+        playButton.animationUpdate();
+
+        if (IsMouseOverPlayButton())
+        {
+            playButtonTint = GRAY;
+        }
+        else
+        {
+            playButtonTint = RAYWHITE;
+        }
     }
     else if (screenState == ScreenState::COMICS)
     {
@@ -168,15 +189,30 @@ void Game::update()
                 IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
                 IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
                 IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON))
-                screenState = ScreenState::GAME;
+                screenState = ScreenState::TUTORIAL;
         }
         
+    }
+    else if (screenState == ScreenState::TUTORIAL)
+    {
+        if (GetKeyPressed() != 0 ||
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) ||
+            IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON))
+            screenState = ScreenState::GAME;
     }
     else if (screenState == ScreenState::GAME)
     {
         checkWin();
+        if (player.arrowFlag)
+        {
+            calculateArrowRotation();
+            arrowTime = Constants::ARROW_SHOW_TIME;
+            player.arrowFlag = false;
+        }
+        updateArrow();
 
-        if (countdown <= 0.0f || sniffsLeft == 0)
+        if (countdown <= 0.0f)
         {
             screenState = ScreenState::LOSE;
         }
@@ -310,6 +346,30 @@ void Game::checkWin()
     }
 }
 
+static float getArrowRotation(float px, float py, float tx, float ty) {
+    float dx = tx - px;
+    float dy = ty - py;
+
+    float angleRadians = atan2f(dy, dx);
+    float angleDegrees = angleRadians * (180.0f / (float)3.14);
+
+    // Shift angle so it's relative to up (because arrow points up by default)
+    angleDegrees += 90.0f;
+
+    // Generate random offset between -90 and +90
+    float randomOffset = ((float)rand() / RAND_MAX) * 180.0f - 90.0f;
+
+    return angleDegrees + randomOffset;
+}
+
+void Game::calculateArrowRotation()
+{
+    Position playerPos = player.getPosition();
+
+    arrowRotation = 180.f + getArrowRotation(targetPosition.x, targetPosition.y,
+                                playerPos.x, playerPos.y);
+}
+
 
 void Game::draw()
 {
@@ -320,9 +380,17 @@ void Game::draw()
       
         BeginTextureMode(renderTexture);
         DrawTexture(resourceManager.getTexture("menuScreen"), 0, 0, RAYWHITE);
-        DrawTextEx(resourceManager.getFont(), "Press any key to play...",
-            { 1400, 1030 }, 40, 2.f, BLACK);
+       // DrawTextEx(resourceManager.getFont(), "Press any key to play...",
+        //    { 1400, 1030 }, 40, 2.f, BLACK);
 
+        Rectangle playButtonRec = { playButton.animationFrame().x,
+                                    playButton.animationFrame().y,
+                                    playButton.animationFrame().width,
+                                    250 };
+
+        DrawTextureRec(playButton.getTexture(), playButtonRec,
+            { 700, 700 }, playButtonTint);
+        
         EndTextureMode();
     }
     else if (screenState == ScreenState::COMICS)
@@ -383,6 +451,17 @@ void Game::draw()
             EndTextureMode();
         }
     }
+    else if (screenState == ScreenState::TUTORIAL)
+    {
+        BeginTextureMode(renderTexture);
+        ClearBackground(SKYBLUE);
+        DrawTexture(resourceManager.getTexture("tutorial"), 0, 0, RAYWHITE);
+
+        DrawTextEx(resourceManager.getFont(), "Press any key to continue...",
+            { 1000, 1000 }, 60, 2.f, BLACK);
+
+        EndTextureMode();
+    }
     else if (screenState == ScreenState::GAME)
     {
         PlayMusicStream(resourceManager.getMusic("gameMusic"));
@@ -400,19 +479,32 @@ void Game::draw()
         drawCircles();
         //drawDebugGrid();
         player.draw();
+
+        if (IsKeyDown(KEY_T))
+            DrawRectangle(targetPosition.x, targetPosition.y, 32, 32, YELLOW);
+
         drawHighlight();
 
         EndMode2D();
+
+        const Texture2D textureArrow = resourceManager.getTexture("arrow");
+        Rectangle sourceRec = { 0.0f, 0.0f, 
+            (float)textureArrow.width,
+            (float)textureArrow.height };
+        Rectangle destRec = { 1010, 490,
+            (float)textureArrow.width,
+            (float)textureArrow.height };
+        Vector2 origin = { (float)textureArrow.width / 2.0f, textureArrow.height / 2.0f };
+
+        if(arrowTime > 1.f)
+        DrawTexturePro(resourceManager.getTexture("arrow"), sourceRec, 
+            destRec, origin, arrowRotation, RAYWHITE);
+
         DrawTextEx(resourceManager.getFont(), TextFormat("Timer: %.2f", countdown),
             { 20, 20 }, 60, 4.f, BLACK);
 
         DrawTextEx(resourceManager.getFont(), TextFormat("SniffsLeft: %d", sniffsLeft),
             { 520, 20 }, 60, 4.f, BLACK);
-
-        if (countdown > 70.f)
-        {
-            DrawTexture(resourceManager.getTexture("tutorial"), 1250, 800, RAYWHITE);
-        }
 
         //DrawText(TextFormat("Timer: %.2f", countdown), 20, 20, 60, RED);
 
@@ -464,6 +556,44 @@ void Game::draw()
     DrawTexturePro(renderTexture.texture, src, dest, { 0, 0 }, 0.0f, WHITE);
 
     EndDrawing();
+}
+
+bool Game::IsMouseOverPlayButton() const
+{
+    // Assume your render texture is always 1920x1080
+    const int virtualWidth = 1920;
+    const int virtualHeight = 1080;
+
+    // Get actual screen size (window)
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+
+    // Calculate render target scale
+    float scale = fminf((float)screenWidth / virtualWidth, (float)screenHeight / virtualHeight);
+
+    // Calculate offset if render target is letterboxed/pillarboxed
+    float offsetX = (screenWidth - virtualWidth * scale) * 0.5f;
+    float offsetY = (screenHeight - virtualHeight * scale) * 0.5f;
+
+    // Get mouse position in screen space
+    Vector2 mouse = GetMousePosition();
+
+    // Convert to virtual canvas space
+    Vector2 virtualMouse = {
+        (mouse.x - offsetX) / scale,
+        (mouse.y - offsetY) / scale
+    };
+
+    return CheckCollisionPointRec(virtualMouse, playButtonRec);
+}
+
+void Game::updateArrow()
+{
+    if (arrowTime < 1.f)
+        return;
+
+    arrowTime -= GetFrameTime();
+
 }
 
 void Game::updateCircles()
@@ -541,18 +671,58 @@ bool Game::isHighlighSolid() const
 
 void Game::generateSolidBlocks()
 {
-    for (int i = 0; i < Constants::MAP_WIDTH_TILES; i++)
+    for (int i = 0; i < Constants::MAP_HEIGHT_TILES; i++)
     {
-        for (int j = 0; j < Constants::MAP_HEIGHT_TILES; j++)
+        for (int j = 0; j < Constants::MAP_WIDTH_TILES; j++)
         {
             int randomNumber = getRandomNumberInInterval(1, 100);
 
-            if (randomNumber <= 5 || i == 0 || j == 0 || 
-                i == Constants::MAP_WIDTH_TILES - 1 || 
-                j == Constants::MAP_HEIGHT_TILES - 1)
+            if (i == Constants::MAP_HEIGHT_TILES - 1 && j == 0)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_LEFT_DOWN });
+                continue;
+            }
+
+            if (i == 0 && j == 0)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_LEFT_UP });
+                continue;
+            }
+
+            if (j == Constants::MAP_WIDTH_TILES - 1 && i == 0)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_RIGHT_UP });
+                continue;
+            }
+
+            if (i == Constants::MAP_HEIGHT_TILES - 1 && j == Constants::MAP_WIDTH_TILES - 1)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_RIGHT_DOWN });
+                continue;
+            }
+
+            if (i == 0 || i == Constants::MAP_HEIGHT_TILES - 1)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_UP });
+                continue;
+            }
+
+            if (j == 0)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_LEFT });
+                continue;
+            }
+
+            if (j == Constants::MAP_WIDTH_TILES - 1)
+            {
+                solidBlocks.push_back({ {j, i}, SolidBlockType::WALL_LEFT });
+                continue;
+            }
+
+            if (randomNumber <= 5)
             {
                 randomNumber = getRandomNumberInInterval(0, 1);
-                solidBlocks.push_back({ {i, j}, (SolidBlockType)randomNumber });
+                solidBlocks.push_back({ {j, i}, (SolidBlockType)randomNumber });
             }
         }
     }
@@ -570,7 +740,22 @@ std::string Game::stringFromEnum(SolidBlockType type) const
         return "rockGreen1";
     case SolidBlockType::ROCK_GREEN2:
         return "rockGreen2";
+    case SolidBlockType::WALL_LEFT:
+        return "wallLeft";
+    case SolidBlockType::WALL_RIGHT:
+        return "wallRight";
+    case SolidBlockType::WALL_UP:
+        return "wallUp";
+    case SolidBlockType::WALL_LEFT_UP:
+        return "wallLeftUp";
+    case SolidBlockType::WALL_RIGHT_UP:
+        return "wallRightUp";
+    case SolidBlockType::WALL_LEFT_DOWN:
+        return "wallLeftDown";
+    case SolidBlockType::WALL_RIGHT_DOWN:
+        return "wallRightDown";
     }
+
 
     return "";
 }

@@ -12,7 +12,14 @@ enum class SolidBlockType
 	BIG_ROCK,
 	WOOD,
 	ROCK_GREEN1,
-	ROCK_GREEN2
+	ROCK_GREEN2,
+	WALL_LEFT,
+	WALL_RIGHT,
+	WALL_UP,
+	WALL_LEFT_UP,
+	WALL_RIGHT_UP,
+	WALL_LEFT_DOWN,
+	WALL_RIGHT_DOWN
 };
 
 enum class ScreenState
@@ -22,7 +29,8 @@ enum class ScreenState
 	GAME,
 	WIN,
 	LOSE,
-	BEFORE_MENU
+	BEFORE_MENU,
+	TUTORIAL
 };
 
 enum class ComicsState
@@ -58,12 +66,22 @@ class Game
 	std::vector<SolidBLock> solidBlocks;
 	std::deque<Position> circles;
 
+	Animation playButton;
+	Color playButtonTint = RAYWHITE;
+
+	Rectangle playButtonRec = { 700, 700, 500, 250 };
+
+	float arrowTime = 0.0f;
+	float arrowRotation = 0.0f;
+
 	void resetGameStats();
 
 	void input();
 	void update();
 	void draw();
 
+	bool IsMouseOverPlayButton() const;
+	void updateArrow();
 	void updateCircles();
 	void drawDebugGrid() const;
 	void drawHoles();
@@ -88,6 +106,9 @@ class Game
 	void drawMinimap();
 
 	void checkWin();
+
+	void calculateArrowRotation();
+
 public:
 
 	static float scale;

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "Animation.h"
 #include <vector>
+#include "Constants.h"
 
 enum class PlayerState
 {
@@ -34,8 +35,16 @@ class Player
 	std::unordered_map<std::string, Animation> anims;
 	std::vector<Position> digPositions;
 
+	float diggingTimer = Constants::DIGGING_TIME;
+	float sniffingTimer = Constants::SNIFFING_TIME;
 
 	std::string enumToString(PlayerState playerState) const;
+	
+	void updateDiggingTimer();
+	void checkDiggingEnded();
+
+	void updateSniffingTimer();
+	void checkSniffingEnded();
 
 public:
 
@@ -51,6 +60,7 @@ public:
 	void setPosition(Position newPos);
 	int getHitBoxSize() const;
 	Position getHighlightPos() const;
+	bool arrowFlag = false;
 
 	const std::vector<Position>& getDigPositions() const;
 	void popDigPosition();

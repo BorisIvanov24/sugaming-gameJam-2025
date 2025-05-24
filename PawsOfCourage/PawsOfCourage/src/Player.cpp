@@ -31,6 +31,64 @@ std::string Player::enumToString(PlayerState playerState) const
 	}
 }
 
+void Player::updateDiggingTimer()
+{
+	if (diggingTimer < 1.f)
+		return;
+
+	diggingTimer -= GetFrameTime();
+}
+
+void Player::checkDiggingEnded()
+{
+	if (diggingTimer < 1.f)
+	{
+		if (currentState == PlayerState::DIG_LEFT)
+		{
+			currentState = PlayerState::IDLE_LEFT;
+			digPositions.push_back(getHighlightPos());
+		}
+		
+
+		if (currentState == PlayerState::DIG_RIGHT)
+		{
+			digPositions.push_back(getHighlightPos());
+			currentState = PlayerState::IDLE_RIGHT;
+		}
+	}
+}
+
+void Player::updateSniffingTimer()
+{
+	if (sniffingTimer < 1.f)
+		return;
+
+	sniffingTimer -= GetFrameTime();
+}
+
+void Player::checkSniffingEnded()
+{
+	if (sniffingTimer < 1.f)
+	{
+		if (currentState == PlayerState::SNIFF_LEFT)
+		{
+			isDigging = true;
+			circleDelay = 30.0;
+			arrowFlag = true;
+			currentState = PlayerState::IDLE_LEFT;
+		}
+
+
+		if (currentState == PlayerState::SNIFF_RIGHT)
+		{
+			isDigging = true;
+			circleDelay = 30.0;
+			arrowFlag = true;
+			currentState = PlayerState::IDLE_RIGHT;
+		}
+	}
+}
+
 Position Player::getPawsPosition() const
 {
 	Position pawsPosition;
@@ -96,6 +154,12 @@ PlayerState Player::update()
 	std::string currentAnimStr = enumToString(currentState);
 	anims[currentAnimStr].animationUpdate();
 
+	updateDiggingTimer();
+	checkDiggingEnded();
+
+	updateSniffingTimer();
+	checkSniffingEnded();
+
 	if (IsKeyDown(KEY_A) && IsKeyDown(KEY_W))
 	{
 		position.x -= toAdd;
@@ -143,7 +207,7 @@ PlayerState Player::update()
 	}
 	else if (IsKeyPressed(KEY_ENTER))
 	{
-		digPositions.push_back(getHighlightPos());
+		diggingTimer = Constants::DIGGING_TIME;
 
 		if (currentState == PlayerState::IDLE_LEFT)
 			currentState = PlayerState::DIG_LEFT;
@@ -161,8 +225,7 @@ PlayerState Player::update()
 	}
 	else if (IsKeyPressed(KEY_SPACE))
 	{
-		isDigging = true;
-		circleDelay = 30.0;
+		sniffingTimer = Constants::SNIFFING_TIME;
 
 		if (currentState == PlayerState::IDLE_LEFT)
 			currentState = PlayerState::SNIFF_LEFT;

@@ -16,8 +16,13 @@ namespace Constants
 	const int MINIMAP_WIDTH = 400;
 	const int MINIMAP_HEIGHT = 225;
 
-	const float CIRCLE_REMOVAL_INTERVAL = 2.0;
+	const float CIRCLE_REMOVAL_INTERVAL = 3.0;
 
 	const float COUNTDOWN = 90.f;
-	const int SNIFFS_LEFT = 15;
+	const int SNIFFS_LEFT = 10;
+
+	const float ARROW_SHOW_TIME = 4.f;
+
+	const float DIGGING_TIME = 2.f;
+	const float SNIFFING_TIME = 2.f;
 }
